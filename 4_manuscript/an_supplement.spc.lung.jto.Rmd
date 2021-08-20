@@ -1,0 +1,340 @@
+---
+title: "Supplementary Material for the paper 'Incidence of smoking-related second primary cancers after lung cancer in Germany: an analysis of nationwide cancer registry data'"
+authors: 
+- name: Marian Eberl
+  address: Chair of Epidemiology, TUM Department of Sport and Health Science, Technical University of Munich, Munich, Germany
+  email: marian.eberl@tum.de
+- name: Luana F. Tanaka
+  address: Chair of Epidemiology, TUM Department of Sport and Health Science, Technical University of Munich, Munich, Germany
+- name: Klaus Kraywinkel
+  address: Robert Koch-Institut, Zentrum für Krebsregisterdaten, Berlin
+- name: Stefanie J. Klug
+  address: Chair of Epidemiology, TUM Department of Sport and Health Science, Technical University of Munich, Munich, Germany
+date: "2021-07-02"
+output:
+  bookdown::html_document2: default
+  bookdown::word_document2: default
+  bookdown::pdf_document2: default
+bibliography: pub_spc_lung_cancer.bib
+link-citations: false
+csl: journal-of-thoracic-oncology.csl
+header-includes:
+- \usepackage{setspace}
+- \usepackage{caption} # Insert the package used by gt
+---
+
+
+```{r setup, include=FALSE, warning=FALSE}
+# project:      SPN - Data Analysis  
+# script:       an_supplement.spc.lung.jto.Rmd
+# author:       Marian Eberl  
+# recent date:  2021-07-01  
+# versions:     2020-11-25 first version  
+# req packages: tidyverse, msSPChelpR, knitr
+# content:		  R Markdown Notebook for the manuscript draft submitted
+# used in:  
+# dependend on:  
+# comments:  
+# execution time:  
+# quality check: (version 2017-07-28, YYYY-MM-DD, Name Programmer)  
+
+
+#----- Set basic parameters
+
+##---- Files
+reload_workspace       <- TRUE # if TRUE, the analysis workspace will be
+                              # reloaded, if FALSE, then prep chunk eval = FALSE
+input_an_workspace     <- "../3_output/01.an_workspace.RData"
+input_dir_tables       <- "../3_output/all_figs_tabs"
+output_dir_tables      <- "../3_output/"
+
+##---- Packages
+load_packages          <- c("knitr", "gt", "tidyverse", "patchwork", "bookdown")
+add_required_packages  <- c("msSPChelpR", "testthat") 
+
+### Check if required packages are installed
+if(any(lapply(c(load_packages, add_required_packages), requireNamespace) == FALSE)){
+  stop(paste0("Required packages are missing. Please install all packages: ", 
+              paste0(load_packages, collapse = ", "),
+              paste0(add_required_packages, collapse = ", ")))
+}
+
+### Load packages
+lapply(load_packages, library, character.only = TRUE)
+
+
+##---- Options
+### Set global options
+options(nwarnings = 10000)
+testthat::local_edition(3)
+
+### Other parameters
+en_gb <- FALSE        #if true, use British English where applicable
+pdf   <- FALSE       #set true if you knit a pdf
+
+### Set-up global knitr options
+knitr::opts_chunk$set(
+  #size of figures
+  #fig.width = 800,
+  #remove code from final doc
+  echo = FALSE)
+```
+
+```{r prep, include = FALSE, eval=reload_workspace}
+#load workspace from  main analysis script
+load(input_an_workspace)
+
+```
+
+# Online Reource - Supplement S1-S12 {#supp}
+
+Supplementary Material for the paper
+
+*"Incidence of smoking-related second primary cancers after lung cancer in Germany: an analysis of nationwide cancer registry data"*
+
+Published in Journal of Thoracic Oncology
+
+Authors: Eberl M, Tanaka LF, Kraywinkel K, Klug SJ
+
+Correspondence: Marian Eberl, [marian.eberl\@tum.de](mailto:marian.eberl@tum.de){.email}, Chair of Epidemiology, TUM Department of Sport and Health Science, Technical University of Munich, Munich, Germany
+
+## S1. Figure: Map of Germany highlighting the regional coverage of PBCR included in the analysis {#supp-map}
+
+```{r fig1, out.width='100%', fig.align='center', warning = FALSE, fig.alt='Map of Germany highlighting the regional coverage of PBCR included in the analysis'}
+
+knitr::include_graphics(file.path(input_dir_tables, "supp_map.png"))
+
+```
+
+
+## S2. Table: Definition of histological subtypes of lung cancer {#supp_tab_subtypes_def}
+
+```{r}
+
+supp_tab_subtypes_def_gt %>%
+   ##column width
+  gt::cols_width(
+    starts_with("hist") ~ px(58),
+    starts_with("subtype") ~ px(135)
+    ) %>%
+  gt::gtsave(
+    file.path(input_dir_tables, "S2_supp_tab_subtypes_def.rtf")
+  )
+
+```
+
+
+```{r}
+if(!pdf){
+  supp_tab_subtypes_def_gt
+}else{
+supp_tab_subtypes_def_gt %>% 
+  #fix issue with empty subtitle in gt -> latex
+  gt::tab_header(
+    title = supp_tab_subtypes_def_gt$"_heading"$title,
+    subtitle = gt::md("&nbsp;")) %>%
+     ##column width
+  gt::cols_width(
+    starts_with("hist") ~ px(58),
+    starts_with("subtype") ~ px(135)
+    )
+}
+```
+
+
+
+## S3. Table: Details on dataset filtering {#supp_tab_filter}
+
+```{r}
+supp_tab_filter_gt %>%
+  #for Journal, remove Title, Subtitle, Footnotes
+  gt::tab_header(title = NULL, subtitle = NULL) %>%
+   ##column width
+  gt::cols_width(
+    stage ~ px(100),
+    excluded ~ px(70),
+    remain ~ px(70),
+    code ~ px(160),
+    comments ~ px(250)
+    ) %>%
+  gt::gtsave(
+    file.path(input_dir_tables, "S3_supp_tab_filter.rtf")
+  )
+```
+
+```{r, warning=FALSE, message=FALSE}
+ 
+supp_tab_filter_gt %>%
+    #fix issue with empty subtitle in gt -> latex
+  gt::tab_header(
+    title = supp_tab_filter_gt$"_heading"$title,
+    subtitle = gt::md("&nbsp;")) %>%
+   ##column width
+  gt::cols_width(
+    stage ~ px(100),
+    excluded ~ px(70),
+    remain ~ px(70),
+    code ~ px(160),
+    comments ~ px(250)
+    )
+
+```
+
+
+## S4. Table: Details of data modifications {#supp_tab_dm}
+
+
+```{r}
+supp_tab_dm_gt %>%
+  #for Journal, remove Title, Subtitle, Footnotes
+  gt::tab_header(title = NULL, subtitle = NULL) %>%
+   ##column width
+  gt::cols_width(
+    variable ~ px(100),
+    details ~ px(350),
+    code ~ px(200)
+    ) %>%
+  gt::gtsave(
+    file.path(input_dir_tables, "S4_supp_tab_dm.rtf")
+  )
+```
+
+```{r, warning=FALSE, message=FALSE}
+ 
+supp_tab_dm_gt %>%
+      #fix issue with empty subtitle in gt -> latex
+  gt::tab_header(
+    title = supp_tab_dm_gt$"_heading"$title,
+    subtitle = gt::md("&nbsp;")) %>%
+   ##column width
+  gt::cols_width(
+    variable ~ px(100),
+    details ~ px(350),
+    code ~ px(200)
+    )
+
+```
+
+
+
+## S5. Table: Details on smoking-related cancer sites {#supp_tab_sites}
+
+```{r}
+supp_tab_sites_gt %>%
+  #for Journal, remove Title, Subtitle, Footnotes
+  gt::tab_header(title = NULL, subtitle = NULL) %>%
+   ##column width
+  gt::cols_width(
+    site ~ px(120),
+    icd_10 ~ px(45),
+    icd_o3 ~ px(75),
+    iarc ~ px(60),
+    barclay ~ px(60),
+    boakye ~ px(60),
+    rr_men ~ px(70),
+    rr_women ~ px(70),
+    paf_men ~ px(75),
+    paf_women ~ px(75)
+    ) %>%
+  gt::gtsave(
+    file.path(input_dir_tables, "S5_supp_tab_sites.rtf")
+  )
+```
+
+```{r, warning=FALSE, message=FALSE}
+ 
+supp_tab_sites_gt %>%
+      #fix issue with empty subtitle in gt -> latex
+  gt::tab_header(
+    title = supp_tab_sites_gt$"_heading"$title,
+    subtitle = gt::md("&nbsp;")) %>%
+   ##column width
+  gt::cols_width(
+    site ~ px(120),
+    icd_10 ~ px(45),
+    icd_o3 ~ px(75),
+    iarc ~ px(60),
+    barclay ~ px(60),
+    boakye ~ px(60),
+    rr_men ~ px(70),
+    rr_women ~ px(70),
+    paf_men ~ px(75),
+    paf_women ~ px(75)
+    )
+
+```
+
+
+```{r}
+knitr::knit_exit()
+```
+
+## S6. Table {#tab1s}
+
+```{r, warning = FALSE}
+tab1s_gt %>% gt::tab_options(table.width = 800)
+```
+
+## S7. Table {#supp_tab_sites_m}
+
+```{r warning=FALSE}
+supp_tab_sites_m_gt %>% 
+   gt::tab_options(table.width = 1500)
+# supp_tab_sites_m_gt %>% 
+#   gt::tab_options(table.width = 1500) %>%
+#   bstfun::as_ggplot()
+
+supp_tab_sites_m_gt %>%
+  gt::gtsave(
+    file.path(input_dir_tables, "supp_tab_sites_male.png"),
+    vwidth = 1500, expand = 10
+  )
+knitr::include_graphics(file.path(input_dir_tables, "supp_tab_sites_male.png"))
+```
+
+## S8. Table {#supp_tab_sites_f}
+
+```{r warning=FALSE}
+supp_tab_sites_f_gt %>% 
+   gt::tab_options(table.width = 1500) 
+# supp_tab_sites_f_gt %>% 
+#   gt::tab_options(table.width = 1500) 
+```
+
+## S9. Table {#sens1_nodco_tab}
+
+```{r, warning=FALSE, message=FALSE}
+#sens1_nodco_tab_gt %>% gt::tab_options(table.width = 2000)
+
+sens1_nodco_tab_gt %>%
+  gt::gtsave(
+    file.path(input_dir_tables, "supp_sens1_tab_nodco.png"),
+    vwidth = 2000, expand = 10
+  )
+knitr::include_graphics(file.path(input_dir_tables, "supp_sens1_tab_nodco.png"))
+
+```
+
+## S10. Table {#sens2_lowdcorate_tab}
+
+```{r, warning=FALSE, message=FALSE}
+sens2_lowdcorate_tab_gt %>% gt::tab_options(table.width = 2000)
+
+```
+
+## S11. Figure {#supp_fig_sir_allfu}
+
+```{r error= FALSE, warning=FALSE, message=FALSE, fig.width = 8, fig.height = 10}
+
+knitr::include_graphics(file.path(input_dir_tables, "supp_fig_sir_allfu.png"))
+```
+
+## S12. Table {#supp_tabX2}
+
+```{r, warning=FALSE}
+supp_tabX2_pt1_gt %>% gt::tab_options(table.width = 3000)
+```
+
+```{r, warning=FALSE}
+supp_tabX2_pt2_gt %>% gt::tab_options(table.width = 3000)
+```
