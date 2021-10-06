@@ -16,9 +16,10 @@ always_allow_html: true
 # project:      SPN - Data Analysis  
 # script:       01.an_analyses.spc.lung.Rmd  
 # author:       Marian Eberl  
-# recent date:  2021-06-28  
+# recent date:  2021-10-06  
 # versions:     2020-09-18 first version  
 #               2021-06-28 rename for public repo
+#               2021-10-06 add notes to SIR lung cancer; add additional analyses required by reviewers
 # req packages: tidyverse, msSPChelpR, knitr
 # content:		  R Markdown Notebook to conduct analysis on SPC after lung cancer for publication 1
 # used in:  
@@ -2156,7 +2157,7 @@ tab1_gt <- tab1_pre %>%
       rows = c(5, 6, 11))
   ) %>%
   tab_source_note(
-    source_note = paste0(if(en_gb){"ASIR age-standardised incidence rate based on the European Standard Population 1976; "}else{"ASIR age-standardized incidence rate based on the European Standard Population 1976; "}, "DCO death-certificate only; ", "FU follow-up; ", "LC primary lung cancer; ", "NSCLC non-small-cell lung carcinoma; ", "PYAR person-years at risk; ", "SPC second primary cancer")
+    source_note = paste0(if(en_gb){"ASIR age-standardised incidence rate based on the European Standard Population 1976 for the population aged 30+; "}else{"ASIR age-standardized incidence rate based on the European Standard Population 1976 for the population aged 30+; "}, "DCO death-certificate only; ", "FU follow-up; ", "LC primary lung cancer; ", "NSCLC non-small-cell lung carcinoma; ", "PYAR person-years at risk; ", "SPC second primary cancer")
   ) %>% 
   #special formatting
   #global table options
@@ -2503,7 +2504,7 @@ fig1_site_row2 <- c("Stomach (C16)",
 
 fig1_site_row3 <- c("Pancreas (C25)",
                     "Larynx (C32)",
-                    "Lung (C33-C34)",
+                    "Lung*** (C33-C34)",
                     "Kidney (C64)",
                     "Urinary tract (C65-C68)")
 
@@ -2524,6 +2525,10 @@ fig1_row2_splot <- sir_sum_fig1 %>%
                     , vlab_x_off = -0.38)
 
 fig1_row3_splot <- sir_sum_fig1 %>%
+   #add note to Lung cancer SIR
+  dplyr::mutate(t_site = dplyr::case_when(
+    t_site == "Lung (C33-C34)" ~ "Lung*** (C33-C34)",
+    TRUE ~ as.character(t_site))) %>%
   plot_sir_byfutime(., sites_to_plot = fig1_site_row3, y_lim = fig1_max_sir
                     , vlab_x_off = -0.38, vlab_y_pos = 0.47)
 
@@ -2739,7 +2744,8 @@ fig1 <- wrap_plots(A = fig1_sum_smo_splot,
     "Notes: SIR is only calculated for strata with at least 5 expected cases. Numeric SIR values are given for total follow-up time (6 months to 10+ years). 
             Showing all sites with at least 70 observed or expected cases for males or 30 observed or expected cases for females for total follow-up time.
             *  Total for \"Smoking-related cancers\" includes all SPC with locations C01-C06, C10-C14 C15-16, C18-20, C22, C25, C30, C31, C32, C33-34, C53, C56, C64, C65-68, C92.
-            ** Total for \"Other cancers\" includes all other locations."),
+            ** Total for \"Other cancers\" includes all other locations.
+            *** SIR for lung cancer may be underestimated due to the histology-dependent registration of SPC with the same location as the first cancer (see Discussion section)."),
   theme = theme(plot.caption = element_text(hjust = 0), #left alignment of caption
                 plot.title = element_text(size = 16))
   )  
@@ -4983,6 +4989,10 @@ supp_tab_sites_m_gt <- supp_sir_sum_tab_sites %>%
                                      TRUE ~ `Total 0.5 to Inf years__expected`),
                 `Total 0.5 to Inf years__observed` = case_when(is.na(`Total 0.5 to Inf years__expected`) | `Total 0.5 to Inf years__observed` < 5  ~ NA_real_,
                                      TRUE ~ `Total 0.5 to Inf years__observed`)) %>%
+    #add note to Lung cancer SIR
+  dplyr::mutate(yvar_label = dplyr::case_when(
+    t_site == "Lung (C33-C34)" ~ "Lung* (C33-C34)",
+    TRUE ~ as.character(t_site))) %>%
   #Start making gt table
   gt::gt()  %>%
   #don't show first column and value, lci, uci
@@ -5251,7 +5261,7 @@ supp_tab_sites_m_gt <- supp_sir_sum_tab_sites %>%
     col_end = all_of("10+ years__sir_uci")
   ) %>%
     tab_source_note(
-    source_note = paste0("Notes: ", "E number of cases expected according to age-, sex-, region- and period-specific reference rates for the general population; ", "O number of cases observed in the data; " ,"PYAR person-years at risk; ",   if(en_gb){"SIR standardised incidence ratio; "}else{"SIR standardized incidence ratio; "}, "SPC second primary cancer; ", "🚬 smoking-related cancer site; ", "x censored counts of expected and observed smaller than 5 for data privacy reasons")
+    source_note = paste0("Notes: ", "E number of cases expected according to age-, sex-, region- and period-specific reference rates for the general population; ", "O number of cases observed in the data; " ,"PYAR person-years at risk; ",   if(en_gb){"SIR standardised incidence ratio; "}else{"SIR standardized incidence ratio; "}, "SPC second primary cancer; ", "🚬 smoking-related cancer site; ", "x censored counts of expected and observed smaller than 5 for data privacy reasons; ", "* SIR for lung cancer may be underestimated due to the histology-dependent registration of SPC with the same location as the first cancer (see Discussion section).")
   ) %>% 
     #special formatting
   ##make column and row group labels bold
@@ -5311,6 +5321,10 @@ supp_tab_sites_f_gt <- supp_sir_sum_tab_sites %>%
                                      TRUE ~ `Total 0.5 to Inf years__expected`),
                 `Total 0.5 to Inf years__observed` = case_when(is.na(`Total 0.5 to Inf years__expected`) | `Total 0.5 to Inf years__observed` < 5  ~ NA_real_,
                                      TRUE ~ `Total 0.5 to Inf years__observed`)) %>%
+   #add note to Lung cancer SIR
+  dplyr::mutate(yvar_label = dplyr::case_when(
+    t_site == "Lung (C33-C34)" ~ "Lung* (C33-C34)",
+    TRUE ~ as.character(t_site))) %>%
   #Start making gt table
   gt::gt()  %>%
   #don't show first column and value, lci, uci
@@ -5583,7 +5597,7 @@ supp_tab_sites_f_gt <- supp_sir_sum_tab_sites %>%
     col_end = all_of("10+ years__sir_uci")
   ) %>%
     tab_source_note(
-    source_note = paste0("Notes: ", "E number of cases expected according to age-, sex-, region- and period-specific reference rates for the general population; ", "O number of cases observed in the data; " ,"PYAR person-years at risk; ",   if(en_gb){"SIR standardised incidence ratio; "}else{"SIR standardized incidence ratio; "}, "SPC second primary cancer; ", "🚬 smoking-related cancer site; ", "x censored counts of expected and observed smaller than 5 for data privacy reasons")
+    source_note = paste0("Notes: ", "E number of cases expected according to age-, sex-, region- and period-specific reference rates for the general population; ", "O number of cases observed in the data; " ,"PYAR person-years at risk; ",   if(en_gb){"SIR standardised incidence ratio; "}else{"SIR standardized incidence ratio; "}, "SPC second primary cancer; ", "🚬 smoking-related cancer site; ", "x censored counts of expected and observed smaller than 5 for data privacy reasons; ", "* SIR for lung cancer may be underestimated due to the histology-dependent registration of SPC with the same location as the first cancer (see Discussion section).")
   ) %>% 
     #special formatting
   ##make column and row group labels bold
@@ -5751,7 +5765,7 @@ sens1_nodco_tab <- sens1_nodco_tab %>%
 
 ```
 
-#### Create Tab Sens2:
+#### Create Tab Sens1:
 
 ```{r}
 
@@ -5768,6 +5782,10 @@ sens1_nodco_tab_gt <- sens1_nodco_tab %>%
                                      TRUE ~ `Total 0.5 to Inf years__expected.x`),
                 `Total 0.5 to Inf years__observed.x` = case_when(is.na(`Total 0.5 to Inf years__expected.x`) | `Total 0.5 to Inf years__observed.x` < 5  ~ NA_real_,
                                      TRUE ~ `Total 0.5 to Inf years__observed.x`)) %>%
+    #add note to Lung cancer SIR
+  dplyr::mutate(t_site = dplyr::case_when(
+    t_site == "Lung (C33-C34)" ~ "Lung* (C33-C34)",
+    TRUE ~ as.character(t_site))) %>%
   #Start making gt table
   gt::gt()  %>%
   #don't show first column and value, lci, uci
@@ -5912,7 +5930,7 @@ sens1_nodco_tab_gt <- sens1_nodco_tab %>%
     col_end = all_of("10+ years__sir_uci")
   ) %>%
     tab_source_note(
-    source_note = paste0("Notes: This sensitivity analysis excluded DCO cases from the observed counts and calculated expected cases using reference rates without DCO", "E number of cases expected according to age-, sex-, region- and period-specific reference rates for the general population; ", "O number of cases observed in the data; " ,"PYAR person-years at risk; ",   if(en_gb){"SIR standardised incidence ratio; "}else{"SIR standardized incidence ratio; "}, "SPC second primary cancer; ", "🚬 smoking-related cancer site; ", "x censored counts of expected and observed smaller than 5 for data privacy reasons")
+    source_note = paste0("Notes: This sensitivity analysis excluded DCO cases from the observed counts and calculated expected cases using reference rates without DCO", "E number of cases expected according to age-, sex-, region- and period-specific reference rates for the general population; ", "O number of cases observed in the data; " ,"PYAR person-years at risk; ",   if(en_gb){"SIR standardised incidence ratio; "}else{"SIR standardized incidence ratio; "}, "SPC second primary cancer; ", "🚬 smoking-related cancer site; ", "x censored counts of expected and observed smaller than 5 for data privacy reasons; ", "* SIR for lung cancer may be underestimated due to the histology-dependent registration of SPC with the same location as the first cancer (see Discussion section).")
   ) %>% 
     #special formatting
   ##make column and row group labels bold
@@ -5961,7 +5979,7 @@ sens1_nodco_tab_gt
 ```
 
 
-### SXX. Table: Sensitivity analysis - Incidence of SPC in smoking-related sites for DCO < 10% regions
+### S10. Table: Sensitivity analysis - Incidence of SPC in smoking-related sites for DCO < 10% regions
 
 #### Prepare Tab Sens2: 
 
@@ -6106,6 +6124,10 @@ sens2_lowdcorate_tab_gt <- sens2_lowdcorate_tab %>%
                                      TRUE ~ `Total 0.5 to Inf years__expected.x`),
                 `Total 0.5 to Inf years__observed.x` = case_when(is.na(`Total 0.5 to Inf years__expected.x`) | `Total 0.5 to Inf years__observed.x` < 5  ~ NA_real_,
                                      TRUE ~ `Total 0.5 to Inf years__observed.x`)) %>%
+    #add note to Lung cancer SIR
+  dplyr::mutate(t_site = dplyr::case_when(
+    t_site == "Lung (C33-C34)" ~ "Lung* (C33-C34)",
+    TRUE ~ as.character(t_site))) %>%
   #Start making gt table
   gt::gt()  %>%
   #don't show first column and value, lci, uci
@@ -6250,8 +6272,8 @@ sens2_lowdcorate_tab_gt <- sens2_lowdcorate_tab %>%
     col_end = all_of("10+ years__sir_uci")
   ) %>%
     tab_source_note(
-    source_note = paste0("Notes: The six included registries are Brandenburg 2007 to 2014, Bremen 2004 to 2014, Hamburg 2008 to 2014, Mecklenburg-Western Pomerania 2003 to 2011, Saarland 2002 to 2011 and Saxony 2005 to 2014.", "E number of cases expected according to age-, sex-, region- and period-specific reference rates for the general population; ", "O number of cases observed in the data; " ,"PYAR person-years at risk; ",   if(en_gb){"SIR standardised incidence ratio; "}else{"SIR standardized incidence ratio; "}, "SPC second primary cancer; ", "🚬 smoking-related cancer site; ", "x censored counts of expected and observed smaller than 5 for data privacy reasons")
-  ) %>% 
+     source_note = paste0("Notes: The six included registries are Brandenburg 2007 to 2014, Bremen 2004 to 2014, Hamburg 2008 to 2014, Mecklenburg-Western Pomerania 2003 to 2011, Saarland 2002 to 2011 and Saxony 2005 to 2014.", "E number of cases expected according to age-, sex-, region- and period-specific reference rates for the general population; ", "O number of cases observed in the data; " ,"PYAR person-years at risk; ",   if(en_gb){"SIR standardised incidence ratio; "}else{"SIR standardized incidence ratio; "}, "SPC second primary cancer; ", "🚬 smoking-related cancer site; ", "x censored counts of expected and observed smaller than 5 for data privacy reasons; ", "* SIR for lung cancer may be underestimated due to the histology-dependent registration of SPC with the same location as the first cancer (see Discussion section).")
+  ) %>%
     #special formatting
   ##make column and row group labels bold
   gt::tab_style(
@@ -6375,7 +6397,7 @@ sens2_lowdcorate_figX2_site_row2 <- c("Stomach (C16)",
                     )
 
 sens2_lowdcorate_figX2_site_row3 <- c("Larynx (C32)",
-                          "Lung (C33-C34)",
+                          "Lung*** (C33-C34)",
                           "Kidney (C64)",
                           "Urinary tract (C65-C68)")
 
@@ -6391,6 +6413,10 @@ sens2_lowdcorate_figX2_row2_splot <- sens2_lowdcorate_figX2_results %>%
   plot_sir_byfutime(., sites_to_plot = sens2_lowdcorate_figX2_site_row2, y_lim = supp_figX2_sir_max)
 
 sens2_lowdcorate_figX2_row3_splot <- sens2_lowdcorate_figX2_results %>%
+     #add note to Lung cancer SIR
+  dplyr::mutate(t_site = dplyr::case_when(
+    t_site == "Lung (C33-C34)" ~ "Lung*** (C33-C34)",
+    TRUE ~ as.character(t_site))) %>%
   plot_sir_byfutime(., sites_to_plot = sens2_lowdcorate_figX2_site_row3, y_lim = supp_figX2_sir_max)
 
 sens2_lowdcorate_figX2_row4_splot <- sens2_lowdcorate_figX2_results %>%
@@ -6426,7 +6452,8 @@ sens2_lowdcorate_figX2 <- sens2_lowdcorate_figX2_row1_splot +
             Mecklenburg-Western Pomerania 2003 to 2011, Saarland 2002 to 2011 and Saxony 2005 to 2014.
             SIR is only calculated for strata with at least 5 expected cases. Numeric values are given for total follow-up time (0 months to 10+ years).
             *  Total for \"Smoking-related cancers\" includes all SPC with locations C01-C06, C10-C14 C15-16, C18-20, C22, C25, C30-34, C53, C56, C64-67, C92.
-            ** Total for \"Other cancers\" includes all other locations."),
+            ** Total for \"Other cancers\" includes all other locations.
+            **** SIR for lung cancer may be underestimated due to the histology-dependent registration of SPC with the same location as the first cancer (see Discussion section)."),
   theme = theme(plot.caption = element_text(hjust = 0),
                 #create common legend and axis labels
                 legend.position="bottom"))  +
@@ -6459,7 +6486,7 @@ res_obs_lowdco_perc <- ((sens2_lowdcorate_d1_zlung_wide %>% filter(p_spc == "SPC
 
 Second, restricting analyses to as subset of regional registries that presumedly had higher cancer registration quality (by showing DCO rates constantly below 10%) removed a large proportion of our observations. Only 6 registries fulfilled that criterion and also only for part of the observation period, so that total person-years at risk were reduced to xxx resulting in very small observed and expected counts (O = `r sens2_observed`, only `r sens2_perc`% of the main analysis set) and thus unreliable estimation of SIRs [see Supplement S9]
 
-### S10. Table: Risk of smoking-related cancer in comparison to other definitions and to England and the US
+### SXX. Table: Risk of smoking-related cancer in comparison to other definitions and to England and the US
 
 #### Calculate SIR for Table 3
 
@@ -6749,7 +6776,7 @@ supp_figX1_site_row2 <- c("Stomach (C16)",
                     )
 
 supp_figX1_site_row3 <- c("Larynx (C32)",
-                          "Lung (C33-C34)",
+                          "Lung*** (C33-C34)",
                           "Kidney (C64)",
                           "Urinary tract (C65-C68)")
 
@@ -6765,6 +6792,10 @@ supp_figX1_row2_splot <- supp_figX1_results %>%
   plot_sir_byfutime(., sites_to_plot = supp_figX1_site_row2, timecats_to_plot = c("to 6 months", "6-12 months", "1-5 years", "5-10 years", "Total"), y_lim = supp_figX1_sir_max, vlab_y_pos = 0.6, vlab_y_diff = 0.15)
 
 supp_figX1_row3_splot <- supp_figX1_results %>%
+  #add note to Lung cancer SIR
+  dplyr::mutate(t_site = dplyr::case_when(
+    t_site == "Lung (C33-C34)" ~ "Lung*** (C33-C34)",
+    TRUE ~ as.character(t_site))) %>%
   plot_sir_byfutime(., sites_to_plot = supp_figX1_site_row3, timecats_to_plot = c("to 6 months", "6-12 months", "1-5 years", "5-10 years", "Total"), y_lim = supp_figX1_sir_max, vlab_x_off = -0.6, vlab_y_diff = 0.13)
 
 supp_figX1_row4_splot <- supp_figX1_results %>%
@@ -6797,7 +6828,8 @@ supp_figX1 <- supp_figX1_row1_splot + supp_figX1_row2_splot + supp_figX1_row3_sp
     caption = element_text(
   "Notes: SIR is only calculated for strata with at least 5 expected cases. Numeric SIR values are given for total follow-up time (0 months to 10+ years).
             *  Total for \"Smoking-related cancers\" includes all SPC with locations C01-C06, C10-C14 C15-16, C18-20, C22, C25, C30-34, C53, C56, C64-67, C92.
-            ** Total for \"Other cancers\" includes all other locations."),
+            ** Total for \"Other cancers\" includes all other locations.
+            *** SIR for lung cancer may be underestimated due to the histology-dependent registration of SPC with the same location as the first cancer (see Discussion section)."),
   theme = theme(plot.caption = element_text(hjust = 0)) #left alignment of caption
   )  
 
@@ -7179,6 +7211,10 @@ supp_tabX2_pt1_gt %>%
 ```{r, warning = TRUE}
 ##create table with gt
 supp_tabX2_pt2_gt <- supp_tabX2_pt2 %>%
+    #add note to Lung cancer SIR
+  dplyr::mutate(yvar_label = dplyr::case_when(
+    yvar_label == "Lung (C33-C34)" ~ "Lung* (C33-C34)",
+    TRUE ~ as.character(yvar_label))) %>%
   #Start making gt table
   gt::gt()  %>%
   #don't show first column and value, lci, uci
@@ -7361,7 +7397,7 @@ supp_tabX2_pt2_gt <- supp_tabX2_pt2 %>%
     col_end = all_of("10+ years__sir_uci")
   ) %>%
       tab_source_note(
-    source_note = paste0("Notes: ", "E number of cases expected according to age-, sex-, region- and period-specific reference rates for the general population; ", "FU follow-up; ", "LC primary lung cancer; ", "NSCLC non-small-cell lung carcinoma; ", "O number of cases observed in the data; " ,"PYAR person-years at risk; ",   if(en_gb){"SIR standardised incidence ratio; "}else{"SIR standardized incidence ratio; "}, "SPC second primary cancer; ", "x censored counts of expected and observed smaller than 5 for data privacy reasons")
+    source_note = paste0("Notes: ", "E number of cases expected according to age-, sex-, region- and period-specific reference rates for the general population; ", "FU follow-up; ", "LC primary lung cancer; ", "NSCLC non-small-cell lung carcinoma; ", "O number of cases observed in the data; " ,"PYAR person-years at risk; ",   if(en_gb){"SIR standardised incidence ratio; "}else{"SIR standardized incidence ratio; "}, "SPC second primary cancer; ", "x censored counts of expected and observed smaller than 5 for data privacy reasons; ", "* SIR for lung cancer may be underestimated due to the histology-dependent registration of SPC with the same location as the first cancer (see Discussion section).")
   ) %>% 
     #special formatting
   ##make column and row group labels bold
