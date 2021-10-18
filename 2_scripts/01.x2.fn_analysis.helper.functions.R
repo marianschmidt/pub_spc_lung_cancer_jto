@@ -1489,8 +1489,8 @@ plot_sir_byfutime <- function(results_df, sites_to_plot , timecats_to_plot = c("
                             )) %>%
     #rename Total t_site
     mutate(t_site := recode(t_site, 
-                           "smoking-related IARC" = "Smoking-related cancers (*1)",
-                           "other cancer" = "Other cancers (*2)",
+                           "smoking-related IARC" = "Smoking-related cancers*",
+                           "other cancer" = "Other cancers**",
                            "Non-Hodgkin lymphoma (C82-C88)" = "Non-Hodgkin lymph. (C82-88)"
                            ))
   #start ggplot
