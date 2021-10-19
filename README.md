@@ -27,3 +27,7 @@ Due to legal restrictions, the individual level raw data used for this analysis 
 More information on the application process is provided on the ZfKD website (https://www.krebsdaten.de/Krebs/EN/Content/ScientificUseFile/scientificusefile_node.html).
 
 
+## Code archive
+
+This repository is available via a permanent identifier.
+[![DOI](https://zenodo.org/badge/398055956.svg)](https://zenodo.org/badge/latestdoi/398055956)
