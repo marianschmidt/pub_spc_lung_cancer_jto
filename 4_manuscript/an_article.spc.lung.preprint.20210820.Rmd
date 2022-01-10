@@ -1,0 +1,643 @@
+---
+title: 'Incidence of smoking-related second primary cancers after lung cancer in Germany:
+  an analysis of nationwide cancer registry data'
+subtitle: This is the preprint of the manuscript before review and editing. The final publication can be accessed via the publisher’s website https://doi.org/10.1016/j.jtho.2021.11.016
+authors:
+- name: Marian Eberl
+  address: Chair of Epidemiology, TUM Department of Sport and Health Sciences, Technical
+    University of Munich, Munich, Germany
+  email: marian.eberl@tum.de
+- name: Luana F. Tanaka
+  address: Chair of Epidemiology, TUM Department of Sport and Health Sciences, Technical
+    University of Munich, Munich, Germany
+- name: Klaus Kraywinkel
+  address: Robert Koch-Institut, Zentrum für Krebsregisterdaten, Berlin
+- name: Stefanie J. Klug
+  address: Chair of Epidemiology, TUM Department of Sport and Health Sciences, Technical
+    University of Munich, Munich, Germany
+output:
+  html_document:
+    toc: no
+    df_print: paged
+  html_notebook:
+    toc: no
+  word_document:
+    toc: no
+keywords:
+- lung cancer
+- second primary cancer
+- smoking-related cancer
+- cancer registry data
+- cancer epidemiology
+bibliography: pub_spc_lung_cancer.bib
+link-citations: no
+csl: journal-of-thoracic-oncology.csl
+always_allow_html: yes
+header-includes:
+- \usepackage{setspace}
+- \usepackage{caption}
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+# project:      SPN - Data Analysis  
+# script:       an_article.spc.lung.jto.Rmd
+# author:       Marian Eberl  
+# recent date:  2021-10-06  
+# versions:     2020-11-25 first version
+#               2021-10-06 add additional CIs, add note on SIR lung, specify ASIR population
+# req packages: tidyverse, msSPChelpR, knitr
+# content:		  R Markdown Notebook for the manuscript draft submitted
+# used in:  
+# dependend on:  
+# comments:  
+# execution time:  
+# quality check: (version 2017-07-28, YYYY-MM-DD, Name Programmer)  
+
+
+#----- Set basic parameters
+
+##---- Files
+reload_workspace       <- TRUE # if TRUE, the analysis workspace will be
+                              # reloaded, if FALSE, then prep chunk eval = FALSE
+input_dir_tables       <- "../3_output/all_figs_tabs"
+input_an_workspace     <- "../3_output/01.an_workspace.RData"
+output_dir_tables      <- "../3_output/"
+
+
+
+##---- Packages
+load_packages          <- c("knitr", "gt", "tidyverse", "patchwork")
+add_required_packages  <- c("msSPChelpR", "testthat", "webshot") 
+
+### Check if required packages are installed
+if(any(lapply(c(load_packages, add_required_packages), requireNamespace) == FALSE)){
+  stop(paste0("Required packages are missing. Please install all packages: ", 
+              paste0(load_packages, collapse = ", "),
+              paste0(add_required_packages, collapse = ", ")))
+}
+
+### Load packages
+lapply(load_packages, library, character.only = TRUE)
+
+
+##---- Options
+### Set global options
+options(nwarnings = 10000)
+testthat::local_edition(3)
+
+### Other parameters
+en_gb <- FALSE        #if true, use British English where applicable
+
+### Set-up global knitr options
+knitr::opts_chunk$set(
+  #size of figures
+  #fig.width = 800,
+  #remove code from final doc
+  echo = FALSE)
+```
+
+```{r prep, include = FALSE, eval=reload_workspace}
+#load workspace from  main analysis script
+load(input_an_workspace)
+
+```
+
+```{r}
+icdgroup_c15_code    <- if(en_gb){"Oesophagus (C15)"}else{"Esophagus (C15)"}
+  icdgroup_c9195_code  <- if(en_gb){"Leukaemias (C91-C95)"}else{"Leukemias (C91-C95)"}
+  icdgroup_c9195s_code <- if(en_gb){"Non-Myeloid Leukaemias (C91, C93-C95)"}else{"Non-Myeloid Leukemias (C91, C93-C95)"}
+  icdgroup_c92_code    <- if(en_gb){"Myeloid leukaemia (C92)"}else{"Myeloid leukemia (C92)"}
+  icdgroup_c96_code    <- if(en_gb){"Other lymphoid, haematopoietic tissue (C96)"}else{"Other lymphoid, hematopoietic tissue (C96)"}
+```
+
+Marian Eberl, MSc, ^a,^\* Luana F Tanaka, PhD, ^a^ Dr Klaus Kraywinkel,  ^b^ Prof Dr Stefanie J Klug, MPH ^a^
+
+^a^ Chair of Epidemiology, TUM Department of Sport and Health Sciences, Technical University of Munich, Georg-Brauchle-Ring 56, 80992 Munich, Germany
+
+^b^ German Centre for Cancer Registry Data, Robert Koch-Institut, Nordufer 20, 13353 Berlin, Germany
+
+\* Corresponding author
+
+# Title
+
+Incidence of smoking-related second primary cancers after lung cancer in Germany: an analysis of nationwide cancer registry data
+
+# Author information
+
+Marian Eberl: Chair of Epidemiology, TUM Department of Sport and Health Sciences, Technical University of Munich, Munich, Germany, <https://orcid.org/0000-0001-6584-3197>
+
+Luana F. Tanaka: Chair of Epidemiology, TUM Department of Sport and Health Sciences, Technical University of Munich, Munich, Germany, <https://orcid.org/0000-0002-2086-7491>
+
+Klaus Kraywinkel: German Centre for Cancer Registry Data, Robert Koch-Institut, Berlin, Germany, <https://orcid.org/0000-0002-9250-6003>
+
+Stefanie J. Klug: Chair of Epidemiology, TUM Department of Sport and Health Sciences, Technical University of Munich, Munich, Germany, <https://orcid.org/0000-0003-3523-1362>
+
+
+
+# Disclosure
+
+The authors declare no conflict of interest.
+
+# Keywords
+
+second primary cancer, lung cancer, cancer epidemiology, cancer registry data, smoking-related cancer
+
+# Abstract {#abstract}
+
+```{r}
+res_n_fc_perc_m <- tab1_pre %>% filter(variable == "Patients with primary LC [n (% of total)]") %>% pull(freq_Male) %>% "*"(100) %>% round(., 1) %>% format(., nsmall = 1)
+res_n_fc_perc_f <- tab1_pre %>% filter(variable == "Patients with primary LC [n (% of total)]") %>% pull(freq_Female) %>% "*"(100) %>% round(., 1) %>% format(., nsmall = 1)
+
+
+res_fu_mean_t <- tab1_pre %>% filter(category == "Mean follow-up [months]") %>% pull(value_Total) %>% round(., 1)
+
+res_n_spc <- tab1_pre %>% filter(category == "SPC developed") %>% pull(n_Total)
+
+#highest SIR by site - Total
+res_c32_m_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Larynx (C32)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+res_c32_m_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Larynx (C32)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c32_m_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Larynx (C32)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+res_c10_m_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Pharynx (C10-C14)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+res_c10_m_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Pharynx (C10-C14)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c10_m_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Pharynx (C10-C14)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+res_c01_m_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+res_c01_m_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c01_m_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+
+
+res_c15_f_sir <- sir_sum_d1_icdgroup %>% filter(t_site == icdgroup_c15_code & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+res_c15_f_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == icdgroup_c15_code & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c01_f_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+res_c01_f_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c01_f_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+res_c65_f_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Urinary tract (C65-C68)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+res_c65_f_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Urinary tract (C65-C68)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c65_f_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Urinary tract (C65-C68)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+
+res_smo_mall_sir <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Male") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_smo_mall_sir_l <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Male") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_smo_mall_sir_u <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Male") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+res_smo_fall_sir <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Female") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_smo_fall_sir_l <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Female") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_smo_fall_sir_u <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Female") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+
+res_smor_iarc_mall_smor <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir.Male) %>% format(., nsmall = 2)
+res_smor_iarc_mall_smor_l <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir_lci.Male) %>% format(., nsmall = 2)
+res_smor_iarc_mall_smor_u <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir_uci.Male) %>% format(., nsmall = 2)
+res_smor_iarc_fall_smor <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir.Female) %>% format(., nsmall = 2)
+res_smor_iarc_fall_smor_l <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir_lci.Female) %>% format(., nsmall = 2)
+res_smor_iarc_fall_smor_u <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir_uci.Female) %>% format(., nsmall = 2)
+
+
+```
+
+**Introduction:** About 80% of lung cancer cases in Germany are attributable to smoking. Patients with a lung cancer diagnosis may remain at increased risk of developing smoking-related second primary cancers (SPC).
+
+**Methods:** Anonymous data from 11 population-based cancer registries covering about 50% of the German population were pooled for the analysis. Included patients were diagnosed with an index lung cancer between 2002 and 2013, 30 to 99 years old at diagnosis and survived for at least 6 months. We calculated `r if(en_gb){"standardised"}else{"standardized"}` incidence ratios (SIR) -- stratified by age, sex, region and period -- comparing the incidence of smoking-related and other SPC to the general population.
+
+**Results:** Of the `r format(nrow_d1_s6_srv, big.mark=",")` lung cancer survivors (`r res_n_fc_perc_m`% male; mean follow-up `r res_fu_mean_t` months) `r if(en_gb){"analysed"}else{"analyzed"}`, `r format(res_n_spc, big.mark=",")` developed an SPC. In males the risk was particularly high for SPCs of the larynx (SIR = `r res_c32_m_sir`; 95% CI: `r res_c32_m_sir_l`--`r res_c32_m_sir_u`), pharynx (`r res_c10_m_sir`; `r res_c10_m_sir_l`--`r res_c10_m_sir_u`) and oral cavity (`r res_c01_m_sir`; `r res_c01_m_sir_l`--`r res_c01_m_sir_u`). For females SIRs were notably elevated for `r if(en_gb){"oesophagus"}else{"esophagus"}` (`r res_c15_f_sir`; `r res_c15_f_sir_l`--`r res_c15_f_sir_u`), oral cavity (`r res_c01_f_sir`; `r res_c01_f_sir_l`--`r res_c01_f_sir_u`) and urinary tract (`r res_c65_f_sir`; `r res_c65_f_sir_l`--`r res_c65_f_sir_u`). When combining all smoking-related cancer sites, SIR was `r res_smo_mall_sir` in males (95% CI: `r res_smo_mall_sir_l`--`r res_smo_mall_sir_u`) and `r res_smo_fall_sir` in females (95% CI: `r res_smo_fall_sir_l`--`r res_smo_fall_sir_u`). We observed that males had a `r res_smor_iarc_mall_smor`-fold (95% CI: `r res_smor_iarc_mall_smor_l`--`r res_smor_iarc_mall_smor_u`) and females a `r res_smor_iarc_fall_smor`-fold (95% CI: `r res_smor_iarc_fall_smor_l`--`r res_smor_iarc_fall_smor_u`) increased risk for smoking-related compared to other cancers.
+
+**Conclusions:** Patients with primary lung cancer were at increased risk for developing a smoking-related SPC. Therefore, the advantages of increased patient surveillance and the benefits of smoking cessation strategies should be considered.
+
+# Introduction {#intro}
+
+Tobacco smoking is the leading cause of lung cancer worldwide. In Germany -- where smoking rates declined over the last two decades but remain high at 24% for males and 19% for females [@seitz2019] -- current estimations show that more than 4 in 5 lung cancer cases are attributable to smoking [@monsCancersDueSmoking2018]. Still, a large proportion of patients with a lung cancer diagnosis continue smoking after therapy [@walker2006; @park2012]. These patients may remain at increased risk of developing second primary cancers (SPC), defined as a new independent cancer diagnosis [@warrenBiologicalClinicalEffects2014].
+
+Previous research using US and UK cancer registry data reported that lung cancer survivors have an increased risk for developing SPC in sites with direct contact to tobacco smoke or its metabolites, such as head and neck, larynx, small intestine and the urinary tract [@barclayIncidenceSecondHigher2019; @boakyeTrendsRiskBurden2019]. A pooled analysis of North American cohort studies showed that patients who quit smoking at the time of their first cancer diagnosis had a reduced risk for SPC after primary bladder, kidney, head and neck, and lung cancers [@shiels2014]. This indicates that apart from genetic susceptibility, radiation and chemotherapy exposure, other lifestyle-related risk factors and increased patient surveillance, there is an independent contribution of continuous smoking to SPC risk. Therefore, we `r if(en_gb){"hypothesise"}else{"hypothesize"}` an elevated risk predominantly in cancer sites for which a causal link to tobacco smoking has been previously established.
+
+Over the last two decades, cancer registration in Germany was largely improved by establishing regional population-based cancer registries (PBCR) in all 16 states. Analyses of risk for multiple primary cancers after lymphoma, endometrial cancer and unknown primary in Germany have been published [@baras2017; @chen2017; @liu2013], but so far, none with regard to smoking-related cancers.
+
+Our objective was to present the absolute and relative incidence of smoking-related SPC in patients who have survived lung cancer in Germany using cancer registry data.
+
+# Material and methods {#methods}
+
+## Data
+
+The German Centre for Cancer Registry Data (ZfKD) provided a dataset with lung cancer cases (ICD-10 codes C33 and C34) from all PBCR in Germany [@zentrum2017a]. We restricted data to include all patients with a primary lung cancer diagnosed between January 2002 and December 2013 that were between 30 and 99 years old at the time of diagnosis. The ZfKD collected anonymous data comprising basic patient information such as year and month of birth, sex, region of residence, vital status, year, month and type of diagnosis, `r if(en_gb){"tumour"}else{"tumor"}` location, morphology, staging, and grading [@arndtDataPopulationbasedCancer2020]. Data from 11 German states (Bavaria, Brandenburg, Bremen, Hamburg, Mecklenburg-Western Pomerania, Lower Saxony, Muenster district, Saarland, Saxony Schleswig-Holstein, Thuringia) covering about 50% of the German population were pooled for this study ([Supplement S1](#supp-map)). The selected registries fulfilled the basic quality parameter of covering at least 90% of incident cancer cases in the registry area as recommended by the Association of PBCR in Germany [@gekid2017] and had started cancer registration in 2002 or earlier, allowing for sufficient follow-up time. Patients with benign or unusual morphology of lung cancer were excluded. This exclusion was based on a histology-dependent classification of first lung cancers into subtypes ([Supplement S2](#supp-subtypes-def)). For the main analyses we further excluded patients with a diagnosis based on death certificate only (DCO) and less than 6 months of survival. More details on case exclusion and data modifications are provided in the Supplement ([S3](#supp-tab-filter), [S4](#supp_tab_dm)).
+
+## Definition of SPC and smoking-relatedness
+
+We restricted our analysis to lung cancer as index cancer based on sound evidence for the high proportion of disease incidence attributable to smoking [@wienecke2014; @monsCancersDueSmoking2018]. Patients younger than 30 years were excluded because this is the earliest age where lung cancer is likely to be caused by smoking [@liuLungCancerYoung2019].
+
+For calculating the incidence of SPC, we applied the International Agency for Research on Cancer (IARC) definition of multiple primaries [@iarc2004] and considered independent cancer diagnoses that occurred after the index lung cancer and before the end of the observation period on 31 December 2014 in the same patient (excluding non-melanoma skin cancers C44 and non-malignant `r if(en_gb){"tumours"}else{"tumors"}` D00--D48).
+
+Inherently, PBCR data do not provide information on patients' smoking history. To `r if(en_gb){"summarise"}else{"summarize"}` SPC incidence in smoking-related sites, we used the definition by IARC to specify sites where tobacco smoking has an established carcinogenic effect [@secretan2009]. We additionally aggregated data for sites `r if(en_gb){"categorised"}else{"categorized"}` as smoking-related by Barclay et al. [@barclayIncidenceSecondHigher2019] and Boakye et al. [@boakyeTrendsRiskBurden2019] to allow for comparison. [Supplement Table S5](#supp-sites-def) lists the sites considered to be smoking-related according to the three definitions, the relative risk of current smokers vs. never-smokers and the percentage of those cancers attributable to smoking.
+
+## Statistical analysis
+
+We described the absolute incidence of SPC by summing up all observed cases within the follow-up periods 6--12 months, 1--5 years, 5--10 years and more than 10 years after a lung cancer diagnosis. To estimate the relative incidence, we calculated `r if(en_gb){"standardised"}else{"standardized"}` incidence ratios (SIRs) comparing the observed number of cases among lung cancer survivors to the expected number of cancers in the general German population. The expected number of cases was calculated based on age-, sex-, region- and period-specific reference rates including DCO cases provided by ZfKD and person-years at risk until the date of SPC, date of death or end of follow-up on 31 December 2014, whatever event occurred first. Additionally, we calculated the ratio between the overall SIR for smoking-related sites and the SIR for other cancer sites (Smo-R) and exact confidence intervals (95% CI) as proposed by Breslow & Day [@breslow1987]. For our main analyses, we presented the results stratified by follow-up time and excluded the first 6 months of follow-up, to allow for comparability with previously published data from England and the United States [@barclayIncidenceSecondHigher2019; @thakurRiskSecondLung2018].
+
+For sensitivity analyses, we excluded SPCs reported as DCO from our observed counts and calculated SIRs using national reference rates without DCO. In an additional sensitivity analysis, we restricted our data to registries with DCO rates of less than 10%, assuming that a low percentage of DCO diagnoses indicates higher registration quality.
+
+All analyses were conducted in R [@rcoreteam2020] with data management using the *tidyverse* and *tidytable* packages [@fairbanks2020; @wickham2019]. Figures were created with *ggplot2* [@wickham2016] and tables with *gt* [@iannone2020]. The routines to calculate and `r if(en_gb){"summarise"}else{"summarize"}` stratified SIRs are publicly available in the R package *msSPChelpR* [@eberl2020b] and all scripts used to create our analyses are published online [@eberl2020c].
+
+# Results {#results}
+
+## Description of the study population
+
+```{r res_nums1, include = FALSE}
+#put result numbers into short variables
+res_asir_m2002 <- tab1 %>%filter(category == "ASIR in 2002 [per 100,000] (95% CI)") %>% pull(value_Male) %>% format(., nsmall = 1)
+res_asir_m2013 <- tab1 %>%filter(category == "ASIR in 2013 [per 100,000] (95% CI)") %>% pull(value_Male) %>% format(., nsmall = 1)
+res_asir_f2002 <- tab1 %>%filter(category == "ASIR in 2002 [per 100,000] (95% CI)") %>% pull(value_Female) %>% format(., nsmall = 1)
+res_asir_f2013 <- tab1 %>%filter(category == "ASIR in 2013 [per 100,000] (95% CI)") %>% pull(value_Female) %>% format(., nsmall = 1)
+
+res_n_dco_less6m_perc <- ((tab1_pre %>% filter(category == "DCO or less than 1 month") %>% pull(freq_Total)) + (tab1_pre %>% filter(category == "1-6 months") %>% pull(freq_Total))) %>% "*"(100) %>% round(., 1) %>% format(., nsmall = 1)
+res_n_fu_na_perc <- tab1_pre %>% filter(category == "Unknown") %>% pull(freq_Total) %>% "*"(100) %>% round(., 1) %>% format(., nsmall = 1)
+
+res_n_dead_nospc_perc <- tab1_pre %>% filter(category == "dead after LC") %>% pull(freq_Total) %>% "*"(100) %>% round(., 1) %>% format(., nsmall = 1)
+res_n_alive_nospc_perc <- tab1_pre %>% filter(category == "no event until end of follow-up") %>% pull(freq_Total) %>% "*"(100) %>% round(., 1) %>% format(., nsmall = 1)
+res_n_spc_perc <- tab1_pre %>% filter(category == "SPC developed") %>% pull(freq_Total) %>% "*"(100) %>% round(., 1) %>% format(., nsmall = 1)
+
+```
+
+A total of `r format(nrow_d2_all, big.mark=",")` patients fulfilling the inclusion criteria were identified in the data. We observed a high, though declining age-`r if(en_gb){"standardised"}else{"standardized"}` incidence of lung cancer among men (from `r res_asir_m2002` per 100,000 in the year 2002 to `r res_asir_m2013` per 100,000 population in 2013) and an increasing incidence among women (from `r res_asir_f2002` to `r res_asir_f2013` per 100,000). Almost half of the patients had either a DCO diagnosis, a cancer-free survival of less than 6 months (`r res_n_dco_less6m_perc`%) or unclear information on follow-up time (`r res_n_fu_na_perc`%) and were therefore disregarded in further analyses ([Table 1](#tab1)).
+
+The main analysis cohort comprised `r format(nrow_d1_s6_srv, big.mark=",")` lung cancer survivors, `r res_n_fc_perc_m`% males and `r res_n_fc_perc_f`% females, with a mean follow-up period of `r res_fu_mean_t` months. From January 2002 to December 2014, `r res_n_dead_nospc_perc`% of patients had died after lung cancer without developing an SPC, another `r res_n_alive_nospc_perc`% were alive without an event at the end of 2014 and `r res_n_spc_perc`% developed an SPC.
+
+## Incidence of second primary cancer
+
+```{r res_nums2, include = FALSE}
+
+#put result numbers into short variables
+res_n_spc <- tab1_pre %>% filter(category == "SPC developed") %>% pull(n_Total) %>% format(., big.mark = ",")
+res_n_spc_m <- tab1_pre %>% filter(category == "SPC developed") %>% pull(n_Male) %>% format(., big.mark = ",")
+res_n_spc_f <- tab1_pre %>% filter(category == "SPC developed") %>% pull(n_Female) %>% format(., big.mark = ",")
+res_n_spc_perc_m <- tab1_pre %>% filter(category == "SPC developed") %>% pull(freq_Male) %>% "*"(100) %>% round(., 1) %>% format(., nsmall = 1)
+res_n_spc_perc_f <- tab1_pre %>% filter(category == "SPC developed") %>% pull(freq_Female) %>% "*"(100) %>% round(., 1) %>% format(., nsmall = 1)
+res_rate_spc_m <- tab1_pre %>% filter(category == "IR [per 100,000 person-years] (95% CI)") %>% pull(value_Male) %>% round(., 1) %>% format(., nsmall = 1)
+res_rate_spc_f <- tab1_pre %>% filter(category == "IR [per 100,000 person-years] (95% CI)") %>% pull(value_Female) %>% round(., 1) %>% format(., nsmall = 1)
+
+#highest SIR by site - Total
+#already caculated for abstract section. don't recalculate to avoid discrepancies
+# res_c32_m_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Larynx (C32)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+# res_c32_m_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Larynx (C32)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+# res_c32_m_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Larynx (C32)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+# res_c10_m_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Pharynx (C10-C14)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+# res_c10_m_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Pharynx (C10-C14)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+# res_c10_m_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Pharynx (C10-C14)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+# res_c01_m_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+# res_c01_m_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+# res_c01_m_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+
+# res_c15_f_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Oesophagus (C15)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+# res_c15_f_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Oesophagus (C15)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+# res_c15_f_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Oesophagus (C15)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+# res_c01_f_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+# res_c01_f_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+# res_c01_f_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Oral cavity (C01-C06)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+# res_c65_f_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Urinary tract (C65-C68)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+# res_c65_f_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Urinary tract (C65-C68)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+# res_c65_f_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Urinary tract (C65-C68)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+res_c64_f_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Kidney (C64)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+res_c64_f_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Kidney (C64)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c64_f_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Kidney (C64)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+
+res_c61_m_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Prostate (C61)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+res_c61_m_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Prostate (C61)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c61_m_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Prostate (C61)" & sex == "Male" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+res_c50_f_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir) %>% format(., nsmall = 2)
+res_c50_f_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c50_f_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "Total 0.5 to Inf years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+res_c50_f6_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "6-12 months") %>% pull(sir) %>% format(., nsmall = 2)
+res_c50_f6_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "6-12 months") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c50_f6_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "6-12 months") %>% pull(sir_uci) %>% format(., nsmall = 2)
+res_c50_f1_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "1-5 years") %>% pull(sir) %>% format(., nsmall = 2)
+res_c50_f1_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "1-5 years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c50_f1_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "1-5 years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+res_c50_f5_sir <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "5-10 years") %>% pull(sir) %>% format(., nsmall = 2)
+res_c50_f5_sir_l <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "5-10 years") %>% pull(sir_lci) %>% format(., nsmall = 2)
+res_c50_f5_sir_u <- sir_sum_d1_icdgroup %>% filter(t_site == "Breast (C50)" & sex == "Female" & fu_time == "5-10 years") %>% pull(sir_uci) %>% format(., nsmall = 2)
+
+#SIR for smoking related vs. other cancers
+
+res_smo_m6_sir <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Male") %>% pull(`6-12 months__sir`) %>% format(., nsmall = 2)
+res_smo_m1_sir <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Male") %>% pull(`1-5 years__sir`) %>% format(., nsmall = 2)
+res_smo_m5_sir <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Male") %>% pull(`5-10 years__sir`) %>% format(., nsmall = 2)
+# res_smo_mall_sir <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Male") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+# res_smo_mall_sir_l <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Male") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+# res_smo_mall_sir_u <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Male") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+res_smo_f6_sir <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Female") %>% pull(`6-12 months__sir`) %>% format(., nsmall = 2)
+res_smo_f1_sir <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Female") %>% pull(`1-5 years__sir`) %>% format(., nsmall = 2)
+res_smo_f5_sir <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Female") %>% pull(`5-10 years__sir`) %>% format(., nsmall = 2)
+# res_smo_fall_sir <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Female") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+# res_smo_fall_sir_l <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Female") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+# res_smo_fall_sir_u <- tab2_pre %>% filter(yvar_label == "Smoking-related cancers - Female") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+
+res_oth_mall_sir  <- tab2_pre %>% filter(yvar_label == "Other cancers - Male") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_oth_mall_sir_l <- tab2_pre %>% filter(yvar_label == "Other cancers - Male") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_oth_mall_sir_u <- tab2_pre %>% filter(yvar_label == "Other cancers - Male") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+res_oth_fall_sir  <- tab2_pre %>% filter(yvar_label == "Other cancers - Female") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_oth_fall_sir_l <- tab2_pre %>% filter(yvar_label == "Other cancers - Female") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_oth_fall_sir_u <- tab2_pre %>% filter(yvar_label == "Other cancers - Female") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+
+res_tall_65_sir <- tab2_pre %>% filter(yvar_label == "65 - 69") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_tall_65_sir_l <- tab2_pre %>% filter(yvar_label == "65 - 69") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_tall_65_sir_u <- tab2_pre %>% filter(yvar_label == "65 - 69") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+res_tall_70_sir <- tab2_pre %>% filter(yvar_label == "70 - 74") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_tall_70_sir_l <- tab2_pre %>% filter(yvar_label == "70 - 74") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_tall_70_sir_u <- tab2_pre %>% filter(yvar_label == "70 - 74") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+res_tall_75_sir <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_tall_75_sir_l <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_tall_75_sir_u <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+
+res_t6_75_sir <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`6-12 months__sir`) %>% format(., nsmall = 2)
+res_t6_75_sir_l <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`6-12 months__sir_lci`) %>% format(., nsmall = 2)
+res_t6_75_sir_u <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`6-12 months__sir_uci`) %>% format(., nsmall = 2)
+res_t1_75_sir <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`1-5 years__sir`) %>% format(., nsmall = 2)
+res_t1_75_sir_l <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`1-5 years__sir_lci`) %>% format(., nsmall = 2)
+res_t1_75_sir_u <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`1-5 years__sir_uci`) %>% format(., nsmall = 2)
+res_t5_75_sir <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`5-10 years__sir`) %>% format(., nsmall = 2)
+res_t5_75_sir_l <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`5-10 years__sir_lci`) %>% format(., nsmall = 2)
+res_t5_75_sir_u <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`5-10 years__sir_uci`) %>% format(., nsmall = 2)
+res_t10_75_sir <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`10+ years__sir`) %>% format(., nsmall = 2)
+res_t10_75_sir_l <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`10+ years__sir_lci`) %>% format(., nsmall = 2)
+res_t10_75_sir_u <- tab2_pre %>% filter(yvar_label == "75 - 79") %>% pull(`10+ years__sir_uci`) %>% format(., nsmall = 2)
+
+res_adeno_t_sir <- tab2_pre %>% filter(yvar_label == "Adenocarcinoma") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_adeno_t_sir_l <- tab2_pre %>% filter(yvar_label == "Adenocarcinoma") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_adeno_t_sir_u <- tab2_pre %>% filter(yvar_label == "Adenocarcinoma") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+res_squam_t_sir <- tab2_pre %>% filter(yvar_label == "Squamous cell carcinoma") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_squam_t_sir_l <- tab2_pre %>% filter(yvar_label == "Squamous cell carcinoma") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_squam_t_sir_u <- tab2_pre %>% filter(yvar_label == "Squamous cell carcinoma") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+res_scc_t_sir <- tab2_pre %>% filter(yvar_label == "Small-cell carcinoma") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_scc_t_sir_l <- tab2_pre %>% filter(yvar_label == "Small-cell carcinoma") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_scc_t_sir_u <- tab2_pre %>% filter(yvar_label == "Small-cell carcinoma") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+res_nsclc_t_sir <- tab2_pre %>% filter(yvar_label == "Other NSCLC") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_nsclc_t_sir_l <- tab2_pre %>% filter(yvar_label == "Other NSCLC") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_nsclc_t_sir_u <- tab2_pre %>% filter(yvar_label == "Other NSCLC") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+
+res_2002_t_sir <- tab2_pre %>% filter(yvar_label == "2002 - 2005") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_2002_t_sir_l <- tab2_pre %>% filter(yvar_label == "2002 - 2005") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_2002_t_sir_u <- tab2_pre %>% filter(yvar_label == "2002 - 2005") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+res_2010_t_sir <- tab2_pre %>% filter(yvar_label == "2010 - 2013") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_2010_t_sir_l <- tab2_pre %>% filter(yvar_label == "2010 - 2013") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_2010_t_sir_u <- tab2_pre %>% filter(yvar_label == "2010 - 2013") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+
+res_saar_t_sir <- tab2_pre %>% filter(yvar_label == "DEC Saarland") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_saar_t_sir_l <- tab2_pre %>% filter(yvar_label == "DEC Saarland") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_saar_t_sir_u <- tab2_pre %>% filter(yvar_label == "DEC Saarland") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+res_bav_t_sir <- tab2_pre %>% filter(yvar_label == "DE2 Bavaria") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_bav_t_sir_l <- tab2_pre %>% filter(yvar_label == "DE2 Bavaria") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_bav_t_sir_u <- tab2_pre %>% filter(yvar_label == "DE2 Bavaria") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+res_lsax_t_sir <- tab2_pre %>% filter(yvar_label == "DE9 Lower Saxony") %>% pull(`Total 0.5 to Inf years__sir`) %>% format(., nsmall = 2)
+res_lsax_t_sir_l <- tab2_pre %>% filter(yvar_label == "DE9 Lower Saxony") %>% pull(`Total 0.5 to Inf years__sir_lci`) %>% format(., nsmall = 2)
+res_lsax_t_sir_u <- tab2_pre %>% filter(yvar_label == "DE9 Lower Saxony") %>% pull(`Total 0.5 to Inf years__sir_uci`) %>% format(., nsmall = 2)
+```
+
+A total of `r res_n_spc` SPC were observed, of which `r res_n_spc_m` occurred in men and `r res_n_spc_f` in women. The absolute incidence rate of any SPC for men was `r res_rate_spc_m` per 100,000 person-years and considerably higher than for women (`r res_rate_spc_f` cases per 100,000 person-years) ([Table 1](#tab1)).
+
+In absolute terms, the most frequent SPC were prostate, colorectal, lung, urinary tract and breast cancers ([Supplement S6](#supp-tab-sites-freq)). The relative incidence compared to the general male population was particularly high for laryngeal cancers (SIR = `r res_c32_m_sir`; 95% CI: `r res_c32_m_sir_l`--`r res_c32_m_sir_u`), pharyngeal cancers (SIR = `r res_c10_m_sir`; 95% CI: `r res_c10_m_sir_l`--`r res_c10_m_sir_u`) and cancers of the oral cavity (SIR = `r res_c01_m_sir`; 95% CI: `r res_c01_m_sir_l`--`r res_c01_m_sir_u`). For females overall SIRs were particularly high for `r if(en_gb){"oesophagus"}else{"esophagus"}` (SIR = `r res_c15_f_sir`; 95% CI: `r res_c15_f_sir_l`--`r res_c15_f_sir_u`), oral cavity (SIR = `r res_c01_f_sir`; 95% CI: `r res_c01_f_sir_l`--`r res_c01_f_sir_u`) and urinary tract (SIR = `r res_c65_f_sir`; 95% CI: `r res_c65_f_sir_l`--`r res_c65_f_sir_u`). For both sexes, cancer sites of the head and neck region and the respiratory tract showed a consistently increased risk regardless of follow-up time ([Figure 1](#fig1)). The risk for prostate cancer, however, was `r (1-as.numeric(res_c61_m_sir))*100`% lower than in the general male population (SIR = `r res_c61_m_sir`; 95% CI: `r res_c61_m_sir_l`--`r res_c61_m_sir_u`; [Supplement S7](#supp-tab-sites-males)), whereas the risk of female breast cancer was elevated (SIR = `r res_c50_f_sir`; 95% CI: `r res_c50_f_sir_l`--`r res_c50_f_sir_u`; [Supplement S8](#supp-tab-sites-females)).
+
+When combining all smoking-related cancer sites, we observed an increased relative incidence of `r res_smo_m6_sir` for males within 6--12 months, `r res_smo_m1_sir` for 1--5 years, `r res_smo_m5_sir` for 5--10 years and `r res_smo_mall_sir` (95% CI: `r res_smo_mall_sir_l`--`r res_smo_mall_sir_u`) for the entire follow-up. For females the SIRs were even higher: `r res_smo_f6_sir` for 6--12 months, `r res_smo_f1_sir` for 1--5 years and `r res_smo_f5_sir` for 5--10 years, and `r res_smo_fall_sir` (95% CI: `r res_smo_fall_sir_l`--`r res_smo_fall_sir_u`) for the complete follow-up ([Figure 1](#fig1), [Table 2](#tab2)).
+
+In contrast, the risk for male lung cancer survivors to develop SPC in non-smoking related sites did not differ from that of the general population with an SIR of `r res_oth_mall_sir` (95% CI: `r res_oth_mall_sir_l`--`r res_oth_mall_sir_u`; [Table 2](#tab2)). For women, the risk for other cancers was elevated compared to the general population (SIR = `r res_oth_fall_sir`; 95% CI: `r res_oth_fall_sir_l`--`r res_oth_fall_sir_u`) but was considerably lower than for smoking-related sites.
+
+We found that SIRs for SPC were particularly elevated for younger people aged 30 to 64 years across all follow-up time ([Table 2](#tab2)). For the age group 65 to 69 years the SIRs were similar to the overall SIR of the study population; for 70- to 74-year-olds the risk was around 1, and for all patients above the age of 75 incidence of SPC was below the expected rates in the general population. This age group also showed a decline of SIRs with increasing survival time. For example, for patients that were 75 to 79 years old at their first cancer diagnosis, SIR was `r res_t6_75_sir` for 6--12 months of survival time, `r res_t1_75_sir` for 1--5 years of survival, `r res_t5_75_sir` for 5--10 years and `r res_t10_75_sir` for more than 10 years of survival ([Table 2](#tab2)).
+
+Stratification by histological type of lung cancer revealed similar SPC risks. For patients diagnosed with adenocarcinoma, the SIR was `r res_adeno_t_sir` (95% CI: `r res_adeno_t_sir_l`--`r res_adeno_t_sir_u`), with squamous cell carcinoma `r res_squam_t_sir` (95% CI: `r res_squam_t_sir_l`--`r res_squam_t_sir_u`), small-cell carcinoma `r res_scc_t_sir` (95% CI: `r res_scc_t_sir_l`--`r res_scc_t_sir_u`) and other non-small-cell lung carcinoma `r res_nsclc_t_sir` (95% CI: `r res_nsclc_t_sir_l`--`r res_nsclc_t_sir_u`).
+
+We did not identify any time trend in SPC incidence regarding the calendar year of diagnosis. Patients diagnosed with lung cancer between 2002 and 2005 had an SIR of `r res_2002_t_sir` (95% CI: `r res_2002_t_sir_l`--`r res_2002_t_sir_u`) compared to `r res_2010_t_sir` (95% CI: `r res_2010_t_sir_l`--`r res_2010_t_sir_u`) for patients diagnosed between 2010 and 2013.
+
+We observed strong regional differences in SPC risk depending on where the index lung cancer was registered ([Table 2](#tab2)). The lowest incidence of SPC was found in Saarland, where the overall SIR was `r res_saar_t_sir` (95% CI: `r res_saar_t_sir_l`--`r res_saar_t_sir_u`). Bavaria, Lower Saxony, Hamburg and Schleswig-Holstein had SPC rates above the national average. The most populous regions in the sample -- Bavaria (SIR = `r res_bav_t_sir`; 95% CI: `r res_bav_t_sir_l`--`r res_bav_t_sir_u`) and Lower Saxony (SIR = `r res_lsax_t_sir`; 95% CI: `r res_lsax_t_sir_l`--`r res_lsax_t_sir_u`) -- considerably added to the excess of observed cases because these states also contributed more than one third of the total population at risk.
+
+## Smoking-related SPC vs. other cancers
+
+```{r}
+res_smo_obs_perc <- ((tab2 %>% filter(yvar_label == "Smoking-related cancers - Total") %>% pull(`Total 0.5 to Inf years__observed`))/(tab2 %>% filter(yvar_label == "Overall") %>% pull(`Total 0.5 to Inf years__observed`))) %>% "*"(100) %>% round(., 1) %>% format(., nsmall = 1)
+
+res_smo_exp_perc <- ((tab2 %>% filter(yvar_label == "Smoking-related cancers - Total") %>% pull(`Total 0.5 to Inf years__expected`))/(tab2 %>% filter(yvar_label == "Overall") %>% pull(`Total 0.5 to Inf years__expected`))) %>% "*"(100) %>% round(., 1) %>% format(., nsmall = 1)
+
+res_smobo_fall_sir <- tab3 %>% filter(measure == "Females: Smoking-related (Boakye et al. definition)") %>% pull(ger_sir) %>% format(., nsmall = 2)
+res_smobo_fall_sir_l <- tab3 %>% filter(measure == "Females: Smoking-related (Boakye et al. definition)") %>% pull(ger_sir_lci) %>% format(., nsmall = 2)
+res_smobo_fall_sir_u <- tab3 %>% filter(measure == "Females: Smoking-related (Boakye et al. definition)") %>% pull(ger_sir_uci) %>% format(., nsmall = 2)
+res_smobo_mall_sir <- tab3 %>% filter(measure == "Males: Smoking-related (Boakye et al. definition)") %>% pull(ger_sir) %>% format(., nsmall = 2)
+res_smobo_mall_sir_l <- tab3 %>% filter(measure == "Males: Smoking-related (Boakye et al. definition)") %>% pull(ger_sir_lci) %>% format(., nsmall = 2)
+res_smobo_mall_sir_u <- tab3 %>% filter(measure == "Males: Smoking-related (Boakye et al. definition)") %>% pull(ger_sir_uci) %>% format(., nsmall = 2)
+res_smoba_fall_sir <- tab3 %>% filter(measure == "Females: Smoking-related (Barclay et al. definition)") %>% pull(ger_sir) %>% format(., nsmall = 2)
+res_smoba_fall_sir_l <- tab3 %>% filter(measure == "Females: Smoking-related (Barclay et al. definition)") %>% pull(ger_sir_lci) %>% format(., nsmall = 2)
+res_smoba_fall_sir_u <- tab3 %>% filter(measure == "Females: Smoking-related (Barclay et al. definition)") %>% pull(ger_sir_uci) %>% format(., nsmall = 2)
+res_smoba_mall_sir <- tab3 %>% filter(measure == "Males: Smoking-related (Barclay et al. definition)") %>% pull(ger_sir) %>% format(., nsmall = 2)
+res_smoba_mall_sir_l <- tab3 %>% filter(measure == "Males: Smoking-related (Barclay et al. definition)") %>% pull(ger_sir_lci) %>% format(., nsmall = 2)
+res_smoba_mall_sir_u <- tab3 %>% filter(measure == "Males: Smoking-related (Barclay et al. definition)") %>% pull(ger_sir_uci) %>% format(., nsmall = 2)
+
+#Smo-R
+# res_smor_iarc_mall_smor <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir.Male) %>% format(., nsmall = 2)
+# res_smor_iarc_mall_smor_l <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir_lci.Male) %>% format(., nsmall = 2)
+# res_smor_iarc_mall_smor_u <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir_uci.Male) %>% format(., nsmall = 2)
+# res_smor_iarc_fall_smor <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir.Female) %>% format(., nsmall = 2)
+# res_smor_iarc_fall_smor_l <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir_lci.Female) %>% format(., nsmall = 2)
+# res_smor_iarc_fall_smor_u <- sir_sum_fig2_tab %>% filter(gr_legend == "Smo-R (IARC def.)") %>% pull(sir_uci.Female) %>% format(., nsmall = 2)
+```
+
+In our analysis cohort, `r res_smo_obs_perc`% of SPC after lung cancer occurred in smoking-related sites when applying the IARC definition of smoking-relatedness, whereas `r res_smo_exp_perc`% of smoking-related cancers would have been expected if the distribution was equal to the general population. The overall SIR for smoking-related cancers was `r res_smo_mall_sir` (95% CI: `r res_smo_mall_sir_l`--`r res_smo_mall_sir_u`) in males and `r res_smo_fall_sir` (95% CI: `r res_smo_fall_sir_l`--`r res_smo_fall_sir_u`) in females. When applying the Bokaye et al. (2019) definition of smoking-relatedness (that excludes larynx, ovary and myeloid `r if(en_gb){"leukaemia"}else{"leukemia"}` from smoking-related sites), we observed a similar estimate of `r res_smobo_mall_sir` (95% CI: `r res_smobo_mall_sir_l`--`r res_smobo_mall_sir_u`) in males and `r res_smobo_fall_sir` (95% CI: `r res_smobo_fall_sir_l`--`r res_smobo_fall_sir_u`) in females. Contrarily, when applying the Barclay et al. (2019) definition of smoking-relatedness -- which focusses on cancers of the lung, larynx, `r if(en_gb){"oesophagus"}else{"esophagus"}`, urinary bladder and head and neck -- to the German data, we obtained a considerably higher ratio for females (SIR = `r res_smoba_fall_sir`; 95% CI: `r res_smoba_fall_sir_l`--`r res_smoba_fall_sir_u`) and a slightly higher SIR for males (SIR = `r res_smoba_mall_sir`; 95% CI: `r res_smoba_mall_sir_l`--`r res_smoba_mall_sir_u`) (Figure 2). Independent of the definition, the risk for an SPC in smoking-related sites was always higher than the risk for other cancers. Males had a `r (as.numeric(res_smor_iarc_mall_smor)-1)*100`% and females a `r (as.numeric(res_smor_iarc_fall_smor)-1)*100`% higher risk for smoking-related than for other cancers (Smo-R males = `r res_smor_iarc_mall_smor`; 95% CI: `r res_smor_iarc_mall_smor_l`--`r res_smor_iarc_mall_smor_u`; Smo-R females = `r res_smor_iarc_fall_smor`; 95% CI: `r res_smor_iarc_fall_smor_l`--`r res_smor_iarc_fall_smor_u`).
+
+## Sensitivity analyses
+
+```{r}
+res_n_dco_overall <- dco_rate_d1 %>% pull(n_dco) %>% format(., big.mark = ",")
+res_n_dco_overall_perc <- dco_rate_d1 %>% pull(dco_rate) %>% round(.,1) %>% format(., nsmall = 1)
+
+res_sir_red_t <- sens1_diff %>% filter(yvar_name == "total_var" & yvar_label == "Overall") %>% pull(sir_diff) %>% round(.,1) %>% format(., nsmall = 2)
+res_sir_red_oth_f <- sens1_diff %>% filter(yvar_label == "Other cancers - Female") %>% pull(sir_diff) %>% format(., nsmall = 2)
+res_sir_red_oth_m <- sens1_diff %>% filter(yvar_label == "Other cancers - Male") %>% pull(sir_diff) %>% format(., nsmall = 2)
+res_sir_red_smo_f <- sens1_diff %>% filter(yvar_label == "Smoking-related cancers - Female") %>% pull(sir_diff) %>% format(., nsmall = 2)
+res_sir_red_smo_m <- sens1_diff %>% filter(yvar_label == "Smoking-related cancers - Male") %>% pull(sir_diff) %>% format(., nsmall = 2)
+
+res_sens2_sir_red_oth_f <- sens2_lowdcorate_tab %>% filter(t_site == "other cancer" & sex == "Female") %>% pull(diff_sir) %>% abs(.) %>% format(., nsmall = 2)
+res_sens2_sir_red_oth_m <- sens2_lowdcorate_tab %>% filter(t_site == "other cancer" & sex == "Male") %>% pull(diff_sir) %>% abs(.) %>% format(., nsmall = 2)
+res_sens2_sir_red_smo_f <- sens2_lowdcorate_tab %>% filter(t_site == "smoking-related IARC" & sex == "Female") %>% pull(diff_sir) %>% abs(.) %>% format(., nsmall = 2)
+res_sens2_sir_red_smo_m <- sens2_lowdcorate_tab %>% filter(t_site == "smoking-related IARC" & sex == "Male") %>% pull(diff_sir) %>% abs(.) %>% format(., nsmall = 2)
+
+
+```
+
+In the sensitivity analyses, removing all DCO cases from the count as SPC resulted in `r res_n_dco_overall` (`r res_n_dco_overall_perc`%) fewer observed cancers. When re-calculating SIR using national reference rates also omitting DCO, we obtained results similar to the main analysis. In general, SIRs excluding DCO cases in SPC were about `r res_sir_red_t` lower than SIRs including DCO in observed counts were. The reduction was more pronounced for other cancers (`r res_sir_red_oth_f` lower in females, `r res_sir_red_oth_m` lower in males) than for smoking-related cancers (`r res_sir_red_smo_f` lower in females, `r res_sir_red_smo_m` lower in males), so that the difference between the SIRs of smoking-related vs. other cancers was slightly increased ([Supplement S9](#sens1_nodco_tab)).
+
+When restricting analyses to a subset of PBCR with DCO rates of less than 10%, only six registries (Brandenburg, Bremen, Hamburg, Mecklenburg-Western Pomerania, Saarland and Saxony) fulfilled this criterion for part of the observation period. Total person-years at risk were reduced to `r res_pyars_lowdco` resulting in small observed and expected counts (O = `r res_obs_lowdco`, only `r res_obs_lowdco_perc`% of the main analysis set) and thus no reliable estimations of site-specific SIRs were possible ([Supplement S10](#sens2_lowdcorate_tab)). The overall SIRs were considerably reduced both for smoking-related cancers (`r res_sens2_sir_red_smo_f` lower in females, `r res_sens2_sir_red_smo_m` lower in males) and for other cancers (`r res_sens2_sir_red_oth_f` lower in females, `r res_sens2_sir_red_oth_m` lower in males).
+
+```{r res_test, include = FALSE}
+#a few tests to make sure nothing has unexpectedly changed
+
+##Case numbers
+##inclusion criteria fulfilled
+testthat::expect_equal(nrow_d2_all, 263921)
+##main analysis cohort
+testthat::expect_equal(nrow_d1_s6_srv, 135589)
+
+##ASIR rates
+testthat::expect_equal(res_asir_m2002, "63.7")
+testthat::expect_equal(res_asir_m2013, "50.0")
+
+##Outcomes
+testthat::expect_equal(res_n_spc_perc, "3.9")
+testthat::expect_equal(res_smo_m1_sir, "1.39")
+testthat::expect_equal(res_2002_t_sir_u, "1.39")
+
+##Sensitivity
+testthat::expect_equal(res_pyars_lowdco, "59,639")
+
+```
+
+# Discussion {#discussion}
+
+In this first nationwide analysis of the incidence of second primary cancers using PBCR data we found an increased risk of SPC among German lung cancer survivors compared to the general population. The risk of being diagnosed with an SPC in a smoking-related site was `r res_smo_mall_sir`-fold for men and `r res_smo_fall_sir`-fold for women, whereas the risk for other cancers was not elevated for men and `r res_oth_fall_sir`-fold for women. An increased risk of smoking-related cancers vs. other cancers was seen across different definitions of smoking-relatedness and for both sexes across all follow-up periods (even after more than 5 years of survival). This indicates that, after surviving lung cancer, patients are susceptible to develop another malignancy associated with tobacco smoking.
+
+Similar findings have been reported by previous registry-based studies from other countries [@barclayIncidenceSecondHigher2019; @boakyeTrendsRiskBurden2019; @abdel-rahmanSubsequentThoracicCancers2017; @khanalRiskSecondPrimary2018; @jeguEffectPatientCharacteristics2014; @tabuchiTobaccoSmokingRisk2013; @youldenRelativeRiskSecond2011]. In an analysis of all lung cancer cases in England diagnosed between 2000 and 2014, Barclay et al. found an elevated risk for smoking-related cancers for at least 10 years after the lung cancer diagnosis [@barclayIncidenceSecondHigher2019]. The SIR of 1.36 for men and 1.98 for women was slightly lower than what we found for Germany when applying the same definition of smoking relatedness ([Figure 2](#fig2)). Several studies `r if(en_gb){"analysed"}else{"analyzed"}` data from the US Surveillance, Epidemiology, and End Results (SEER) Program [@boakyeTrendsRiskBurden2019; @thakurRiskSecondLung2018; @abdel-rahmanSubsequentThoracicCancers2017; @khanalRiskSecondPrimary2018]. The most comparable analysis was performed by Boakye et al. using the SEER-18 dataset. They included primary cancers diagnosed between 2000 and 2014 and found an overall SIR of 1.62 for both sexes after lung cancer [@boakyeTrendsRiskBurden2019]. Three studies assessed the risk of a second lung cancer after an index lung cancer and found a significantly higher risk for both men and women [@thakurRiskSecondLung2018; @abdel-rahmanSubsequentThoracicCancers2017; @khanalRiskSecondPrimary2018]. In summary, SPC risk after lung cancer appears to be higher in the US. This might, however, partly be explained by methodological differences in registration, such as applying the SEER rules of multiple primaries instead of the IARC definition as discussed below.
+
+In this study, the risk for most tobacco-related cancers following lung cancer was significantly elevated, especially for the larynx, pharynx, oral cavity and `r if(en_gb){"oesophagus"}else{"esophagus"}`, as seen in previous research [@barclayIncidenceSecondHigher2019; @boakyeTrendsRiskBurden2019; @jeguEffectPatientCharacteristics2014]. The particularly high SIRs for cancer in tobacco-related sites, which are 1.3 to 1.7-fold the estimate for other cancers, indicate that smoking could explain the increased risk for lung cancer survivors. For these sites, consistent positive dose-response relationships between duration of smoking and risk of cancer have been described [@iarcworkinggroupontheevaluationofcarcinogenicriskstohumansIARCMonographsEvaluation2012]. In addition, these are the sites for which risk of cancer is particularly high among smokers compared to non-smokers [@gandiniTobaccoSmokingCancer2008]. Tabuchi et al. have shown that in 30,000 lung cancer patients from a hospital registry in Osaka, Japan, ever smokers had increased SIRs of 2.69 for laryngeal, 3.41 for pharyngeal and 3.94 for `r if(en_gb){"oesophageal"}else{"esophageal"}` cancers, while never smokers showed no risk increase [@tabuchiTobaccoSmokingRisk2013]. Another explanation besides smoking `r if(en_gb){"behaviour"}else{"behavior"}` could be shared environmental or genetic risk factors for developing lung cancer and other cancers in the upper respiratory tract. Our observation that SIRs for smoking-related cancers remain consistently high -- not only for the first years after the lung cancer diagnosis, but also for more than 5 years of follow-up -- corroborate the assumption that a considerable amount of patients continue smoking after their first cancer diagnosis.
+
+The comparably low SIRs for lung cancer that we found in our analysis are impacted by the IARC definition of multiple primaries that is routinely applied by all German PBCRs [@gekid2017]. A second primary lung cancer is only registered if the `r if(en_gb){"tumour"}else{"tumor"}` has a different histology group than the index lung cancer and unspecified histology is excluded from SPC count. Since we compared this limited observed count to the expected general lung cancer risk independent of histology, our SIRs for the site lung underestimate the true incidence ratio. Other analyses that used the IARC definition of multiple primaries also found lower SIRs for second lung cancer [@jeguEffectPatientCharacteristics2014] than studies using the SEER definition [@thakurRiskSecondLung2018; @abdel-rahmanSubsequentThoracicCancers2017; @khanalRiskSecondPrimary2018]. Weir et al. have shown that applying SEER rules for multiple primaries instead of the IARC rules results in higher incidence estimates, especially for paired organs and organs with large surface such as lung and bronchus [@weirEffectMultiplePrimary2016].
+
+For females the risk of smoking-related cancers was significantly higher compared to males across follow-up time, in line with previous findings [@barclayIncidenceSecondHigher2019]. Epidemiological evidence indicates that women have higher risk of tobacco-related disease than men with comparable smoking `r if(en_gb){"behaviour"}else{"behavior"}` [@hansenSexDifferencesRisk2018; @huxleyCigaretteSmokingRisk2011]. Various molecular hypotheses have been presented [@warrenBiologicalClinicalEffects2014; @iarcworkinggroupontheevaluationofcarcinogenicriskstohumansIARCMonographsEvaluation2012; @fidler-benaoudiaLungCancerIncidence2020]; however, the reason for this finding is not fully understood and deserves further investigation.
+
+Within the context of substantial legal and `r if(en_gb){"organisational"}else{"organizational"}` changes in cancer registration in Germany since 2013 [@arndtDataPopulationbasedCancer2020], it remains unclear whether follow-up time and the actual application of multiple primary definition play an important role in SIR estimations. We observed largely increased rates for less than 6 months follow-up time that might be due to increased patient surveillance during the treatment period or registration of non-independent second cancers; however, we excluded this follow-up period from our main analysis ([Supplements S11](#sens2_lowdcorate_figX2), [S12](#supp_tabX2)). Additional research is needed to investigate whether this is due to a large number of smoking-related SPCs developing simultaneously with the primary lung cancer or if data quality, such as high DCO rates or limited information on second cancers, also affects SIR estimates.
+
+Our research is the first to provide absolute and relative incidence rates for smoking-related SPC after lung cancer in Germany. We used the most comprehensive dataset of pooled PBCR for the analysis cohort, covering half of the German population. Furthermore, we applied the most accurate methodology for calculating SIRs by using age-, sex-, region- and period-specific reference rates. We reported our analyses stratified by follow-up time to avoid bias and data `r if(en_gb){"artefacts"}else{"artifacts"}`, especially for the first year of follow-up. Additionally, we report site-specific SIRs to allow comparison of SIRs for smoking-related and other SPC independent of the definition of smoking-relatedness, for which we used an established classification by IARC.
+
+This analysis is subject to the inherent limitations of PBCR data that do not contain information on individual lifestyle factors. First, there is no information on the actual smoking status of patients. All conclusions on the association between cancer diagnosis and smoking were made on a population level. While for the index lung cancer, we can be sufficiently certain that the disease was caused by tobacco smoking in most observed patients due to the high population-attributable fraction [@monsCancersDueSmoking2018], the definition of smoking-relatedness in other sites is more ambiguous. Second, regional variations of SIR rates within German PBCR suggest that there might be differences in cancer registration practices, especially with regard to how IARC criteria of multiple primaries are applied when no histological verification of the second cancer is available. Additionally, misclassification of metastases, especially for `r if(en_gb){"tumours"}else{"tumors"}` with no histological verification, could have led to an overestimation of SIRs. Lastly, we might have overestimated follow-up time for some patients because of DCO cases and incomplete record linkage to death registries. The actual date of diagnosis for DCO cases is unknown and therefore, the date of diagnosis is replaced by the date of death, although cancer must have occurred before death. Incomplete record linkage of PBCR with death registries leads to immortal time bias [@arndtDataPopulationbasedCancer2020]. Both effects increase follow-up time for the expected count, therefore underestimating the true SIR.
+
+For the growing number of long-term survivors, our findings imply the possibility of lowering the risk for subsequent cancer by quitting smoking after their lung cancer diagnosis. Observational studies have shown that many smokers continue or restart smoking after lung cancer [@shiels2014; @walker2006; @park2012], whereas smoking cessation decreases SPC risk in cancer patients and improves survival [@warrenBiologicalClinicalEffects2014; @osazuwa-petersAssociationHeadNeck2018]. Thus, smoking cessation may result in a lower SPC incidence with all its associated individual and societal benefits. Future analyses will reveal whether decreasing smoking rates also reduce the incidence of smoking-related SPC. Moreover, even patients who have survived lung cancer for 5 years and longer could benefit from continuous medical surveillance, because they remain at increased risk particularly for smoking-related cancers.
+
+This comprehensive analysis of data from 11 German PBCR showed an increased risk for second cancers among lung cancer survivors compared to the general population. The risk was notably increased for developing a smoking-related SPC compared to non-smoking-related SPC. Males had a `r (as.numeric(res_smor_iarc_mall_smor)-1)*100`% and females a `r (as.numeric(res_smor_iarc_fall_smor)-1)*100`% higher risk for smoking-related than for other cancers. This research indicates that a large burden of disease is related to subsequent tobacco smoking-associated cancers. Therefore, the advantages of increased patient surveillance and smoking cessation efforts should be considered, especially for long-term lung cancer survivors.
+
+# Figures and Tables
+
+## `r tab1_gt$"_heading"$title`
+
+`r tab1_gt$"_heading"$subtitle`
+
+```{r tab1, warning = FALSE}
+tab1_gt  %>% 
+  #for Journal, remove Title, Subtitle, Footnotes
+  gt::tab_header(title = NULL, subtitle = NULL) %>%
+  #gt::tab_source_note(source_note = NULL) %>%  #not working in gt v0.3
+  gt::tab_options(table.width = 1000,
+                  footnotes.marks = "letters")
+```
+
+## Figure 1
+
+```{r, warning = FALSE, include = FALSE}
+
+fig1_nol %>%
+  ggsave(filename = file.path(output_dir_tables, "fig1.png"),
+         width = 10, height = 12.2)
+
+
+```
+
+```{r fig1, out.width='100%', fig.align='center', warning = FALSE}
+
+fig1_nol %>%
+  ggsave(filename = file.path(output_dir_tables, "fig1.png"),
+         width = 10, height = 12.2)
+
+knitr::include_graphics(file.path(output_dir_tables, "fig1.png"))
+
+```
+
+**Figure 1 Incidence of SPC in smoking-related and other cancer sites (n=`r format(nrow_d1_s6_srv, big.mark = ",")`).** Showing site-specific SIRs stratified by sex on the log-transformed y-axis (for males in green and for females in red) and stratified by follow-up time on the x-axis.
+
+`r fig1$patches$annotation$caption$family`
+
+## `r tab2_gt$"_heading"$title`
+
+`r tab2_gt$"_heading"$subtitle`
+
+```{r tab2, warning = FALSE}
+tab2_gt  %>% 
+  #for Journal, remove Title, Subtitle, Footnotes
+  gt::tab_header(title = NULL, subtitle = NULL) %>%
+  #gt::tab_source_note(source_note = NULL) %>%  #not working in gt v0.3
+  gt::tab_options(table.width = 1150,
+                  footnotes.marks = "letters")
+```
+
+## Figure 2
+
+```{r, warning = FALSE, include = FALSE}
+
+fig2_nol %>%
+  #save ggplot
+  gt::gtsave(
+    file.path(output_dir_tables, "fig2.png"),
+    vwidth = 1200, expand = 10
+  )
+
+```
+
+```{r fig2, out.width='100%', fig.align='center'}
+
+knitr::include_graphics(file.path(output_dir_tables, "fig2.png"))
+
+```
+
+**Figure 2 Impact of smoking-relatedness definition on SIR estimates and risk for smoking-related vs. other second primary cancers.** Showing SIR estimate and respective 95% CI for smoking-related cancers (orange tones) according to three different definitions of smoking relatedness, then SIR for other cancers in the middle (blue tones) and the ratio of smoking-related vs. other cancer SIR at the bottom. The first column shows total estimates for the complete analysis dataset (n=`r format(nrow_d1_s6_srv, big.mark = ",")`). The second column for males and the last column for females. For smoking-related cancers the Barclay definition results in higher SIR estimates than the IARC and Boakye definition, especially for females. Estimates for other cancers only show marginal differences. The ratio Smo-R is consistently above 1 for all definitions, indicating a 1.3 to 1.7-fold SIR for smoking-related cancers compared to other cancers.
+
+`r tab_fig2_gt$"_source_notes"`
+
+# References
+
+::: {#refs}
+:::
+
+# Footnotes
+
+## List of abbreviations
+
+CI: confidence interval
+
+DCO: death certificate only
+
+IARC: International Agency for Research on Cancer
+
+PBCR: population-based cancer registry
+
+SEER: Surveillance, Epidemiology, and End Results Program
+
+SIR: standardized incidence ratio
+
+Smo-R: ratio between the overall SIR for smoking-related sites and the SIR for other cancer sites
+
+SPC: second primary cancers
+
+ZfKD: German Centre for Cancer Registry Data
+
+## CRediT authorship contribution statement
+
+Marian Eberl: Conceptualization; Methodology; Software; Formal Analysis; Data Curation; Writing -- original draft; Writing -- review and editing; Visualization
+
+Luana F Tanaka: Validation; Resources; Writing -- Original Draft; Writing -- review and editing
+
+Klaus Kraywinkel: Methodology; Validation; Resources; Writing -- review and editing; Supervision
+
+Stefanie J Klug: Conceptualization; Validation; Writing -- review and editing; Supervision
+
+## Data availability statement
+
+Due to legal restrictions, the individual level raw data used for this analysis is only available via request to the German Centre for Cancer Registry Data (ZfKD) that can provide a scientific use file. More information on the application process is provided on the ZfKD website (<https://www.krebsdaten.de/Krebs/EN/Content/ScientificUseFile/scientificusefile_node.html>).
+
+The authors of this paper strongly support open science and have therefore published both the analysis code and the newly programmed software to review and download under a GPL-3 license. The respective references are provided in the manuscript.
+
+Repository for analysis code: <https://github.com/marianschmidt/pub_spc_lung_cancer_jto>
+
+Repository for software code: <https://doi.org/10.5281/zenodo.5055870>
+
+## Funding
+
+This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
+
+## Conflict of interest
+
+The authors declare no conflict of interest.
+
+## Ethics approval and consent to participate
+
+This study analyzed the scientific use file (SUF) of the German Centre for Cancer Registry Data (ZfKD). Data collection is mandated and regulated by the German Federal Law on Cancer Registration (BKRG) and secondary data analysis of the anonymous SUF -- as used in this study -- does not require ethics approval or consent by patients (§3 and §5 BKRG).
+
+## Supplementary material
+
+File: "Submission_SPC after LC in Ger_JTO_Supplement S1-S12.pdf"
+
+Description: The Supplement contains all supplementary material in one PDF file. This includes 12 supplementary figures and tables consecutively numbered S1 to S12.
